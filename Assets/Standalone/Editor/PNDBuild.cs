@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Text;
 using UnityEditor;
+using UnityEditor.Build;
 using UnityEditor.Build.Reporting;
 using UnityEngine;
 using Debug = UnityEngine.Debug;
@@ -24,6 +25,8 @@ public static class PNDBuild
     const string ExeName = "PanicoNoDisplay.exe";
     const string GameName = "Panico no Display";
     const string Version = "1.0";
+    const string IconPng = "Assets/Standalone/icone_jogo.png"; // ícone do .exe e dos atalhos
+    const string IconIco = "Assets/Standalone/icone_jogo.ico"; // ícone do Setup.exe (Inno Setup)
 
     [MenuItem("Tools/Pânico no Display/Gerar instalador (Windows)")]
     public static void BuildInstaller()
@@ -57,12 +60,15 @@ public static class PNDBuild
             // ---------- 3) Setup.exe (Inno Setup) ----------
             EditorUtility.DisplayProgressBar("Pânico no Display", "Gerando o Setup.exe...", 0.85f);
             string iss = Path.Combine(buildDir, "PanicoNoDisplay.iss");
-            WriteText(iss, InnoScript(gameDir, buildDir), true);
+            WriteText(iss, InnoScript(gameDir, buildDir, Path.Combine(root, IconIco).Replace('/', '\\')), true);
             string iscc = FindInnoSetup();
             bool setupOk = false;
+            string issLog = "";
             if (iscc != null)
             {
-                setupOk = Run(iscc, "/Q \"" + iss + "\"", out string issLog);
+                string setupExe = Path.Combine(buildDir, "PanicoNoDisplay_Setup.exe");
+                if (File.Exists(setupExe)) File.Delete(setupExe); // nunca fica um Setup.exe velho para trás
+                setupOk = Run(iscc, "/Q \"" + iss + "\"", out issLog);
                 if (!setupOk) Debug.LogWarning("[Pânico no Display] O Inno Setup deu erro:\n" + issLog);
             }
 
@@ -73,6 +79,12 @@ public static class PNDBuild
             if (setupOk) msg.AppendLine("• PanicoNoDisplay_Setup.exe — instalador completo (recomendado)");
             if (zipOk) msg.AppendLine("• PanicoNoDisplay_Instalador.zip — descompacte e rode INSTALAR.bat");
             else msg.AppendLine("• Instalador\\ — rode INSTALAR.bat");
+            if (iscc != null && !setupOk)
+            {
+                msg.AppendLine();
+                msg.AppendLine("O Setup.exe NÃO foi gerado. Erro do Inno Setup:");
+                msg.AppendLine(issLog.Length > 400 ? issLog.Substring(0, 400) : issLog);
+            }
             if (iscc == null)
             {
                 msg.AppendLine();
@@ -110,6 +122,7 @@ public static class PNDBuild
         PlayerSettings.bundleVersion = Version;
         PlayerSettings.fullScreenMode = FullScreenMode.FullScreenWindow;
         PlayerSettings.resizableWindow = false;
+        ApplyIcon();
 
         if (Directory.Exists(gameDir)) Directory.Delete(gameDir, true);
         var options = new BuildPlayerOptions
@@ -130,6 +143,28 @@ public static class PNDBuild
                        "Se falar em 'Windows Build Support', instale esse módulo pelo Unity Hub (Installs → engrenagem → Add modules).");
         EditorUtility.DisplayDialog("Pânico no Display", "A geração do jogo falhou. Veja o Console.", "OK");
         return false;
+    }
+
+    /// <summary>Usa o ícone do personagem no .exe (em vez do ícone padrão da Unity).</summary>
+    static void ApplyIcon()
+    {
+        var ti = AssetImporter.GetAtPath(IconPng) as TextureImporter;
+        if (ti == null)
+        {
+            Debug.LogWarning("[Pânico no Display] Ícone não encontrado em " + IconPng + " (o jogo vai usar o ícone da Unity).");
+            return;
+        }
+        if (ti.textureCompression != TextureImporterCompression.Uncompressed || ti.maxTextureSize < 1024 || ti.mipmapEnabled)
+        {
+            ti.textureCompression = TextureImporterCompression.Uncompressed;
+            ti.maxTextureSize = 1024;
+            ti.mipmapEnabled = false;
+            ti.alphaIsTransparency = true;
+            ti.SaveAndReimport();
+        }
+        var tex = AssetDatabase.LoadAssetAtPath<Texture2D>(IconPng);
+        if (tex != null)
+            PlayerSettings.SetIcons(NamedBuildTarget.Unknown, new[] { tex }, IconKind.Any);
     }
 
     /// <summary>Copia o jogo sem as pastas de depuração que o Unity marca como "DoNotShip".</summary>
@@ -247,7 +282,7 @@ clique em ""Mais informacoes"" e depois em ""Executar assim mesmo"".
 Para jogar sem instalar: abra Jogo\PanicoNoDisplay.exe.
 ";
 
-    static string InnoScript(string gameDir, string outDir)
+    static string InnoScript(string gameDir, string outDir, string iconIco)
     {
         return @"; Gerado por Tools -> Panico no Display -> Gerar instalador (Windows)
 ; Para recompilar sozinho: abra este arquivo no Inno Setup e aperte Compile.
@@ -263,7 +298,7 @@ DisableProgramGroupPage=yes
 PrivilegesRequired=lowest
 OutputDir=" + outDir + @"
 OutputBaseFilename=PanicoNoDisplay_Setup
-UninstallDisplayIcon={app}\" + ExeName + @"
+" + (File.Exists(iconIco) ? "SetupIconFile=" + iconIco + "\n" : "") + @"UninstallDisplayIcon={app}\" + ExeName + @"
 Compression=lzma2
 SolidCompression=yes
 WizardStyle=modern
