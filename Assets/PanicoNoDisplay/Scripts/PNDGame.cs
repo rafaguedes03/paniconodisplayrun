@@ -27,6 +27,12 @@ namespace PanicoNoDisplay
 
         /// <summary>Quando true, as setas não movem o foco (usado no "Como Jogar" para trocar abas).</summary>
         public bool ConsumeArrows;
+
+        /// <summary>
+        /// Botão que recebe o foco na primeira seta apertada quando nada está selecionado
+        /// (as telas abrem com todos os botões azuis; o verde aparece no mouse ou nas setas).
+        /// </summary>
+        public Selectable DefaultSelectable;
         GameObject pendingAccept;
 
         void Awake()
@@ -133,6 +139,9 @@ namespace PanicoNoDisplay
             if (sel == null)
             {
                 pendingAccept = null;
+                if (DefaultSelectable != null && DefaultSelectable.isActiveAndEnabled && DefaultSelectable.IsInteractable()
+                    && (kb.upArrowKey.wasPressedThisFrame || kb.downArrowKey.wasPressedThisFrame || kb.tabKey.wasPressedThisFrame))
+                    es.SetSelectedGameObject(DefaultSelectable.gameObject);
                 return;
             }
 
@@ -188,6 +197,7 @@ namespace PanicoNoDisplay
             PNDUI.Select(null);
             pendingAccept = null;
             ConsumeArrows = false;
+            DefaultSelectable = null;
             if (currentWorld != null)
             {
                 currentWorld.SetActive(false);

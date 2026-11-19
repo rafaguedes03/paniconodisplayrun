@@ -98,20 +98,20 @@ namespace PanicoNoDisplay
 
             redAlarmRect = PNDUI.ColorRect("RedAlarmOverlay", ui, new Color(1f, 0f, 0f, 0f), false);
 
-            var dp = PNDUI.StyledBox("DialoguePanel", ui, PNDUI.GodotPanel, false);
+            var dp = PNDUI.FramePanel("DialoguePanel", ui, false);
             PNDUI.G(dp.rectTransform, 0.5f, 1f, 0.5f, 1f, -260, -75, 260, -15);
             dialoguePanel = dp.gameObject;
             dialogueLabel = PNDUI.Label("Label", dp.transform,
                 "Relatório de pesquisa quase pronto...\nVou só dar uma olhada no servidor do lab e tomar um café.",
                 15, Color.white, TextAlignmentOptions.Center, 4, Color.black, true);
-            PNDUI.Full(dialogueLabel.rectTransform);
+            PNDUI.G(dialogueLabel.rectTransform, 0, 0, 1, 1, 10, 4, -10, -4);
 
             var banner = PNDUI.ColorRect("AlertBanner", ui, new Color(0.12f, 0.02f, 0.02f, 0.9f), false);
             PNDUI.G(banner.rectTransform, 0.5f, 0.5f, 0.5f, 0.5f, -270, -80, 270, 45);
             alertBanner = banner.gameObject;
             var bv = PNDUI.G(PNDUI.Rect("VBox", banner.transform), 0, 0, 1, 1, 10, 10, -10, -10);
             PNDUI.VBox(bv, 8f);
-            PNDUI.Label("TitleLabel", bv, "⚠ ALERTA: CURTO-CIRCUITO NO LABORATÓRIO ⚠", 20, new Color(1f, 0.2f, 0.2f),
+            PNDUI.Label("TitleLabel", bv, "!! ALERTA: CURTO-CIRCUITO NO LABORATÓRIO !!", 20, new Color(1f, 0.2f, 0.2f),
                 TextAlignmentOptions.Center, 6, Color.black);
             alertSublabel = PNDUI.Label("SubLabel", bv,
                 "O CURTO-CIRCUITO ESTÁ SE ESPALHANDO PELO LABORATÓRIO!\nEVACUE IMEDIATAMENTE: O LAB ESTÁ FORA DE CONTROLE!",

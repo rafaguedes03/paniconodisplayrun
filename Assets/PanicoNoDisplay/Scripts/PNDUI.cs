@@ -54,7 +54,12 @@ namespace PanicoNoDisplay
         RectTransform tooltipRt;
         PNDStyle lastStyle;
 
-        public override void OnPointerEnter(PointerEventData eventData) { base.OnPointerEnter(eventData); pointerInside = true; }
+        public override void OnPointerEnter(PointerEventData eventData)
+        {
+            base.OnPointerEnter(eventData);
+            pointerInside = true;
+            if (IsInteractable()) PND.PlayButtonSound();
+        }
         public override void OnPointerExit(PointerEventData eventData) { base.OnPointerExit(eventData); pointerInside = false; }
         public override void OnPointerDown(PointerEventData eventData) { base.OnPointerDown(eventData); if (eventData.button == PointerEventData.InputButton.Left) pointerDown = true; }
         public override void OnPointerUp(PointerEventData eventData) { base.OnPointerUp(eventData); if (eventData.button == PointerEventData.InputButton.Left) pointerDown = false; }
@@ -212,6 +217,77 @@ namespace PanicoNoDisplay
 
         public static RectTransform Full(RectTransform rt) => G(rt, 0, 0, 1, 1, 0, 0, 0, 0);
 
+        /// <summary>Tamanho da arte da tela de início (art/menu), em pixels.</summary>
+        public const float ArtW = 1672f, ArtH = 941f;
+
+        /// <summary>
+        /// Posiciona pelos pixels da arte da tela de início (x, y = canto superior esquerdo).
+        /// Usa âncoras proporcionais, então acompanha a imagem de fundo em qualquer resolução.
+        /// </summary>
+        /// <summary>Quantas unidades do Canvas vale 1 pixel da arte (640 / 1672).</summary>
+        public const float ArtUnit = 640f / ArtW;
+
+        /// <summary>Faz as bordas das molduras 9-slice terem o mesmo tamanho das do menu.</summary>
+        public const float FramePPU = 100f / ArtUnit;
+
+        /// <summary>Aplica uma moldura 9-slice da arte (art/menu/frame_*) em uma Image.</summary>
+        public static Image Frame(Image img, string path, float borderPx)
+        {
+            img.sprite = PND.Sliced(path, borderPx);
+            img.type = Image.Type.Sliced;
+            img.pixelsPerUnitMultiplier = FramePPU;
+            img.fillCenter = true;
+            return img;
+        }
+
+        /// <summary>Painel com a moldura chanfrada do menu (azul ou verde neon).</summary>
+        public static Image FramePanel(string name, Transform parent, bool green)
+        {
+            var rt = Rect(name, parent);
+            var img = rt.gameObject.AddComponent<Image>();
+            Frame(img, green ? "art/menu/frame_panel_green" : "art/menu/frame_panel", 26f);
+            img.raycastTarget = false;
+            return img;
+        }
+
+        /// <summary>
+        /// Caixa com a moldura de botão, sem clique (placar e recorde do HUD).
+        /// Coloque o conteúdo como filho do RectTransform devolvido.
+        /// </summary>
+        public static RectTransform FrameBox(string name, Transform parent, out Image frame)
+        {
+            var rt = Rect(name, parent);
+            var frt = Rect("Frame", rt);
+            float pad = 26f * ArtUnit;
+            frt.anchorMin = Vector2.zero;
+            frt.anchorMax = Vector2.one;
+            frt.offsetMin = new Vector2(-pad, -pad);
+            frt.offsetMax = new Vector2(pad, pad);
+            frame = frt.gameObject.AddComponent<Image>();
+            Frame(frame, "art/menu/frame_btn_normal", 50f);
+            frame.raycastTarget = false;
+            frt.gameObject.AddComponent<LayoutElement>().ignoreLayout = true;
+            return rt;
+        }
+
+        /// <summary>Fundo das telas por cima do menu: a arte da tela de início escurecida.</summary>
+        public static void MenuBackdrop(RectTransform root, float dim = 0.72f)
+        {
+            var bg = Full(Rect("Background", root)).gameObject.AddComponent<Image>();
+            bg.sprite = PND.Spr("art/menu/menu_background");
+            bg.raycastTarget = true;
+            ColorRect("Dimmer", root, new Color(0f, 0.01f, 0.04f, dim));
+        }
+
+        public static RectTransform Art(RectTransform rt, float x, float y, float w, float h)
+        {
+            rt.anchorMin = new Vector2(x / ArtW, 1f - (y + h) / ArtH);
+            rt.anchorMax = new Vector2((x + w) / ArtW, 1f - y / ArtH);
+            rt.pivot = new Vector2(0.5f, 0.5f);
+            rt.offsetMin = rt.offsetMax = Vector2.zero;
+            return rt;
+        }
+
         public static void ApplyExpand(RectTransform rt, float e)
         {
             rt.anchorMin = Vector2.zero;
@@ -273,6 +349,15 @@ namespace PanicoNoDisplay
             t.overflowMode = TextOverflowModes.Overflow;
             t.richText = false;
             if (outlineSize > 0f) SetOutline(t, outlineSize, outlineColor ?? Color.black);
+            if (!wrap)
+            {
+                // Altura mínima garantida: dentro de VBox o texto nunca fica com altura 0
+                // (era isso que fazia as abas do "Como Jogar" ficarem por cima do título)
+                int lines = 1;
+                foreach (char ch in text) if (ch == '\n') lines++;
+                var le = rt.gameObject.AddComponent<LayoutElement>();
+                le.minHeight = Mathf.Ceil(size * 1.3f) * lines;
+            }
             return t;
         }
 
@@ -342,7 +427,7 @@ namespace PanicoNoDisplay
             return b;
         }
 
-        static readonly PNDStyle InputStyle = new PNDStyle { bg = new Color(0.96f, 0.96f, 0.98f, 1f), radius = 3 }.Border(new Color(1f, 0.8f, 0.2f, 1f), 2);
+        static readonly PNDStyle InputStyle = new PNDStyle { bg = new Color(0.01f, 0.07f, 0.13f, 0.95f), radius = 3 }.Border(new Color(0.37f, 0.99f, 0.57f, 1f), 2);
 
         /// <summary>Campo de texto de uma linha (LineEdit do Godot), montado por código.</summary>
         public static TMP_InputField TextInput(string name, Transform parent, string placeholder, float fontSize, int characterLimit)
@@ -355,9 +440,9 @@ namespace PanicoNoDisplay
             var area = G(Rect("TextArea", rt), 0, 0, 1, 1, 8, 2, -8, -2);
             area.gameObject.AddComponent<RectMask2D>();
 
-            var ph = Label("Placeholder", area, placeholder, fontSize, new Color(0.55f, 0.55f, 0.6f), TextAlignmentOptions.MidlineLeft);
+            var ph = Label("Placeholder", area, placeholder, fontSize, new Color(0.45f, 0.55f, 0.7f), TextAlignmentOptions.MidlineLeft);
             Full(ph.rectTransform);
-            var text = Label("Text", area, "", fontSize, new Color(0.1f, 0.1f, 0.12f), TextAlignmentOptions.MidlineLeft);
+            var text = Label("Text", area, "", fontSize, Color.white, TextAlignmentOptions.MidlineLeft);
             Full(text.rectTransform);
 
             var input = rt.gameObject.AddComponent<TMP_InputField>();
@@ -370,9 +455,9 @@ namespace PanicoNoDisplay
             input.characterLimit = characterLimit;
             input.richText = false;
             input.customCaretColor = true;
-            input.caretColor = new Color(0.1f, 0.1f, 0.12f);
+            input.caretColor = new Color(0.37f, 0.99f, 0.57f);
             input.caretWidth = 2;
-            input.selectionColor = new Color(1f, 0.8f, 0.2f, 0.5f);
+            input.selectionColor = new Color(0.37f, 0.99f, 0.57f, 0.4f);
 
             rt.gameObject.SetActive(true);
             return input;
@@ -520,12 +605,13 @@ namespace PanicoNoDisplay
         {
             var le = c.GetComponent<LayoutElement>();
             if (le == null) le = c.gameObject.AddComponent<LayoutElement>();
-            le.minWidth = minW;
-            le.minHeight = minH;
-            le.preferredWidth = prefW;
-            le.preferredHeight = prefH;
-            le.flexibleWidth = flexW;
-            le.flexibleHeight = flexH;
+            // -1 = "não mexer" (mantém o que já estava, como a altura mínima dos textos)
+            if (minW != -1) le.minWidth = minW;
+            if (minH != -1) le.minHeight = minH;
+            if (prefW != -1) le.preferredWidth = prefW;
+            if (prefH != -1) le.preferredHeight = prefH;
+            if (flexW != -1) le.flexibleWidth = flexW;
+            if (flexH != -1) le.flexibleHeight = flexH;
             return le;
         }
     }

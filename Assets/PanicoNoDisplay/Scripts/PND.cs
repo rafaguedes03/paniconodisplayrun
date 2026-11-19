@@ -55,7 +55,49 @@ namespace PanicoNoDisplay
             return s;
         }
 
+        /// <summary>
+        /// Sprite "9-slice" criado na hora a partir da textura: os cantos (borda em pixels)
+        /// ficam do mesmo tamanho e só o miolo estica. Usado nas molduras de art/menu/frame_*.
+        /// </summary>
+        public static Sprite Sliced(string path, float border)
+        {
+            string key = path + "|" + border;
+            if (slicedCache.TryGetValue(key, out var cached) && cached != null) return cached;
+            var tex = Resources.Load<Texture2D>(ResRoot + path);
+            if (tex == null)
+            {
+                Debug.LogError("[Pânico no Display] Arte não encontrada: Resources/" + ResRoot + path);
+                return null;
+            }
+            var s = Sprite.Create(tex, new Rect(0, 0, tex.width, tex.height), new Vector2(0.5f, 0.5f), 1f, 0,
+                SpriteMeshType.FullRect, new Vector4(border, border, border, border));
+            s.name = path + "_sliced";
+            slicedCache[key] = s;
+            return s;
+        }
+
+        static readonly Dictionary<string, Sprite> slicedCache = new Dictionary<string, Sprite>();
+
         // ---------------- Áudio ----------------
+
+        static AudioSource uiAudio;
+
+        /// <summary>Som de passar o mouse em cima de um botão (audio/sfx/button_sound).</summary>
+        public static void PlayButtonSound()
+        {
+            var clip = Clip("audio/sfx/button_sound");
+            if (clip == null) return;
+            if (uiAudio == null)
+            {
+                // Fica na cena do minijogo e some junto com ela
+                var go = new GameObject("PND_UIAudio");
+                uiAudio = go.AddComponent<AudioSource>();
+                uiAudio.playOnAwake = false;
+                uiAudio.spatialBlend = 0f;
+                uiAudio.ignoreListenerPause = true;
+            }
+            uiAudio.PlayOneShot(clip, 0.8f);
+        }
 
         static readonly Dictionary<string, AudioClip> clipCache = new Dictionary<string, AudioClip>();
 

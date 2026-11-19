@@ -22,13 +22,20 @@ rápida e os 5 melhores scores ficam salvos no ranking.
    (a que contém `Assets`, `Packages` e `ProjectSettings`).
 3. Abra o projeto e aperte **Play**: o jogo abre sozinho.
 
-## Gerar a versão para instalar (Windows)
+## Gerar o instalador (Windows)
 
-No Unity: **Tools → Pânico no Display → Gerar instalável (Windows)**.
+No Unity: **Tools → Pânico no Display → Gerar instalador (Windows)**. Tudo sai na pasta `Build`:
 
-O jogo pronto sai na pasta `Build/Windows`. Para instalar em outro computador, copie a pasta
-`Windows` **inteira** (não só o `.exe`) e abra `PanicoNoDisplay.exe`. Não precisa instalar o Unity
-no computador do evento.
+- `PanicoNoDisplay_Setup.exe` — instalador completo (só aparece se o [Inno Setup](https://jrsoftware.org/isdl.php),
+  gratuito, estiver instalado no PC que gera o jogo).
+- `PanicoNoDisplay_Instalador.zip` — funciona em qualquer Windows: descompacte e rode `INSTALAR.bat`
+  (copia o jogo e cria o atalho na Área de Trabalho; `DESINSTALAR.bat` remove).
+
+Os computadores do evento não precisam de Unity, internet nem administrador. Como o jogo não é
+assinado, o Windows pode mostrar "O Windows protegeu o computador": clique em **Mais informações →
+Executar assim mesmo**.
+
+Só o jogo, sem instalador: **Tools → Pânico no Display → Gerar só o jogo (Windows)** (pasta `Build/Windows`).
 
 ## Ranking
 

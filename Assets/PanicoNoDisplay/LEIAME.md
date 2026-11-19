@@ -16,7 +16,7 @@ Se alguma arte aparecer borrada ou com tamanho errado: **Tools → Pânico no Di
 ## Neste projeto (versão independente)
 
 Aperte **Play**: `Assets/Standalone/PNDStandaloneBoot.cs` abre o minijogo sozinho, e o SAIR fecha o jogo.
-**Tools → Pânico no Display → Gerar instalável (Windows)** cria a versão para instalar em `Build/Windows`.
+**Tools → Pânico no Display → Gerar instalador (Windows)** cria o jogo e os instaladores na pasta `Build` (veja o README da raiz).
 Para usar o minijogo dentro de outro projeto, copie só a pasta `Assets/PanicoNoDisplay`
 (precisa de Input System e do *TMP Essentials*).
 
@@ -37,6 +37,16 @@ Menu (JOGAR / COMO JOGAR / SAIR + **TOP 5**) → cutscene (só na primeira vez, 
 - A cada +40 de velocidade aparece "MAIS RÁPIDO!" e a música acelera um pouco (até 12%: `MaxMusicPitch` em `PNDHud.cs`).
 - Depois do 12º obstáculo aparecem combos pular + deslizar (`ComboChance` e `ComboGapMin/Max` no `PNDSpawner`).
 - Tela de fim parada por 20 s volta sozinha ao menu (`AutoMenuSeconds`); na tela do nome, 45 s sem digitar pula para o ranking.
+- Tela de início: arte em `Resources/PanicoNoDisplay/art/menu/`, gerada a partir de `ArtSource/menu/tela_inicio_original.png`
+  pelo script `ArtSource/menu/make_menu.py` (recorta os botões, reconstrói o fundo atrás deles e desenha o estado de hover).
+  Se mudar a arte, rode o script de novo (Python com Pillow, NumPy e OpenCV) e copie os PNGs para `art/menu/`.
+  Os botões são `PNDArtButton` (troca para a moldura verde, cresce 4% e anda para a direita ao passar o mouse).
+- Créditos: edite a lista `CREDITOS` no topo de `Scripts/PNDCredits.cs`.
+  A foto é `art/menu/credits_photo.png` (gerada por `ArtSource/menu/make_extras.py`).
+- Todas as telas (Como Jogar, Créditos, Pause, Fim de jogo, cutscene) usam as molduras 9-slice
+  `art/menu/frame_*` (azul normal, verde neon no hover), pelo `PNDUI.FramePanel` e `PNDArtButton.CreateFramed`.
+- Passar o mouse em qualquer botão toca `audio/sfx/button_sound.ogg` (`PND.PlayButtonSound`).
+- Instagram do autor na tela de início: constante `Instagram` em `Scripts/PNDMainMenu.cs`.
 - A música agora é `musica-corrida.ogg` (o MP3 original está em `Backup~/audio/`).
 - A pasta `Backup~/` guarda os scripts da versão anterior (com vidas, tempo e PC final). O Unity ignora pastas terminadas em `~`.
 

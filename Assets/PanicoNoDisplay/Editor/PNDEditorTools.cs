@@ -38,7 +38,9 @@ namespace PanicoNoDisplay.EditorTools
             s.alphaIsTransparency = true;
             s.npotScale = TextureImporterNPOTScale.None;
             // Fundos usam filtro linear (texture_filter = 2 no Godot); o resto é pixel art
-            s.filterMode = path.Contains("display_lab_background") ? FilterMode.Bilinear : FilterMode.Point;
+            // A tela de início (art/menu) também: é uma ilustração grande, não pixel art
+            s.filterMode = path.Contains("display_lab_background") || path.Contains("/art/menu/")
+                ? FilterMode.Bilinear : FilterMode.Point;
             s.wrapMode = path.Contains("lab_floor_tile") ? TextureWrapMode.Repeat : TextureWrapMode.Clamp;
             ti.SetTextureSettings(s);
 

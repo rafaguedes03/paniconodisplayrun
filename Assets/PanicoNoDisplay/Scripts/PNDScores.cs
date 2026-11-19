@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using TMPro;
 using UnityEngine;
+using UnityEngine.UI;
 
 namespace PanicoNoDisplay
 {
@@ -123,25 +124,22 @@ namespace PanicoNoDisplay
 
         // ---------------- Quadro do TOP 5 (menu e tela de fim) ----------------
 
-        static readonly PNDStyle BoardStyle = new PNDStyle { bg = new Color(0.05f, 0.07f, 0.14f, 0.85f), radius = 4 }
-            .Border(new Color(1f, 0.8f, 0.2f, 0.9f), 1);
-
         /// <summary>Monta o quadro com os 5 melhores. 'highlight' destaca uma posição (o score recém-salvo).</summary>
         public static RectTransform BuildBoard(Transform parent, int highlight = -1)
         {
-            var panel = PNDUI.StyledBox("Ranking", parent, BoardStyle, false);
+            var panel = PNDUI.FramePanel("Ranking", parent, false);
             var rt = panel.rectTransform;
 
-            var box = PNDUI.G(PNDUI.Rect("VBox", rt), 0, 0, 1, 1, 12, 8, -12, -8);
+            var box = PNDUI.G(PNDUI.Rect("VBox", rt), 0, 0, 1, 1, 14, 10, -14, -14);
             PNDUI.VBox(box, 3f);
 
-            PNDUI.Label("Title", box, "TOP " + TopCount, 16, new Color(1f, 0.8f, 0.2f), TextAlignmentOptions.Center, 4, Color.black);
+            PNDUI.Label("Title", box, "TOP " + TopCount, 16, new Color(0.37f, 0.99f, 0.57f), TextAlignmentOptions.Center, 4, Color.black);
 
             var list = Top;
             for (int i = 0; i < TopCount; i++)
             {
                 bool has = i < list.Count;
-                Color c = i == highlight ? new Color(0.3f, 1f, 0.3f)
+                Color c = i == highlight ? new Color(0.37f, 0.99f, 0.57f)
                     : has ? new Color(0.92f, 0.92f, 0.95f)
                     : new Color(0.5f, 0.5f, 0.55f);
 
@@ -153,6 +151,41 @@ namespace PanicoNoDisplay
                 var name = PNDUI.Label("Name", row, has ? list[i].name : "---", 14, c);
                 PNDUI.Layout(name, flexW: 1);
                 PNDUI.Label("Score", row, has ? list[i].score.ToString() : "", 14, c, TextAlignmentOptions.Right);
+            }
+            return rt;
+        }
+
+        /// <summary>Quadro do TOP 5 da tela de início, com a moldura da arte (art/menu/panel_ranking).</summary>
+        public static RectTransform BuildMenuBoard(Transform parent)
+        {
+            var rt = PNDUI.Rect("Ranking", parent);
+            var img = rt.gameObject.AddComponent<Image>();
+            img.sprite = PND.Spr("art/menu/panel_ranking");
+            img.raycastTarget = false;
+
+            var box = PNDUI.G(PNDUI.Rect("VBox", rt), 0, 0, 1, 1, 9, 7, -9, -7);
+            PNDUI.VBox(box, 2f, TextAnchor.UpperCenter);
+
+            PNDUI.Label("Title", box, "TOP " + TopCount, 15, new Color(0.37f, 0.99f, 0.57f), TextAlignmentOptions.Center, 4, Color.black);
+
+            var list = Top;
+            for (int i = 0; i < TopCount; i++)
+            {
+                bool has = i < list.Count;
+                Color c = !has ? new Color(0.45f, 0.52f, 0.62f)
+                    : i == 0 ? new Color(1f, 0.85f, 0.3f)   // 1º lugar em dourado
+                    : new Color(0.9f, 0.94f, 0.99f);
+
+                var row = PNDUI.Rect("Row" + i, box);
+                PNDUI.HBox(row, 4f, TextAnchor.MiddleLeft);
+
+                var pos = PNDUI.Label("Pos", row, (i + 1) + ".", 11, c);
+                PNDUI.Layout(pos, 12, -1, 12, -1);
+                var name = PNDUI.Label("Name", row, has ? list[i].name : "---", 11, c);
+                name.overflowMode = TextOverflowModes.Ellipsis; // nome comprido vira "NOMECOMP..."
+                PNDUI.Layout(name, 0, -1, 0, -1, 1);
+                var score = PNDUI.Label("Score", row, has ? list[i].score.ToString() : "", 11, c, TextAlignmentOptions.Right);
+                PNDUI.Layout(score, minW: 28);
             }
             return rt;
         }

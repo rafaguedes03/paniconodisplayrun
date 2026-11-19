@@ -34,10 +34,13 @@ namespace PanicoNoDisplay
         GameObject endScreen, pauseScreen, nameEntry;
         RectTransform boardHolder;
         TMP_InputField nameInput;
-        PNDButton continueButton, restartButton, quitButton;
-        PNDButton saveButton, skipButton;
-        PNDButton muteButton, pauseButton;
+        PNDArtButton continueButton, restartButton, quitButton;
+        PNDArtButton saveButton, skipButton;
+        PNDArtButton muteButton, pauseButton;
         AudioSource musicPlayer, recordSound, speedSound;
+
+        static readonly Color Verde = new Color(0.37f, 0.99f, 0.57f); // verde neon do menu
+        Image recordFrame;
 
         TextMeshProUGUI speedBanner;
         float bannerTimer;
@@ -73,42 +76,79 @@ namespace PanicoNoDisplay
             var hbox = PNDUI.G(PNDUI.Rect("HBoxContainer", root), 0, 0, 1, 0, 20, 20, -20, 50);
             PNDUI.HBox(hbox, 8f, TextAnchor.MiddleLeft);
 
-            scoreLabel = PNDUI.Label("ScoreLabel", hbox, "SCORE: 0", 24, Color.white, TextAlignmentOptions.Left, 4, Color.black);
+            // Caixa do SCORE (moldura de botão, com o número rodando dentro)
+            var scoreBox = PNDUI.FrameBox("ScoreBox", hbox, out _);
+            PNDUI.Layout(scoreBox, 150, 30, 150, 30);
+            PNDUI.HBox(scoreBox, 6f, TextAnchor.MiddleLeft).padding = new RectOffset(12, 12, 0, 0);
+            PNDUI.Label("ScoreTitle", scoreBox, "SCORE", 11, new Color(0.55f, 0.75f, 0.95f), TextAlignmentOptions.MidlineLeft);
+            scoreLabel = PNDUI.Label("ScoreLabel", scoreBox, "0", 20, Color.white, TextAlignmentOptions.MidlineRight, 4, Color.black);
             PNDUI.Layout(scoreLabel, flexW: 1);
-            recordLabel = PNDUI.Label("RecordLabel", hbox, "RECORDE: " + record, 18, new Color(1f, 0.85f, 0.2f), TextAlignmentOptions.Right, 4, Color.black);
+
+            var spacer = PNDUI.Rect("Spacer", hbox);
+            PNDUI.Layout(spacer, flexW: 1);
+
+            // Caixa do RECORDE (troféu + número); fica verde quando o recorde é batido
+            var recordBox = PNDUI.FrameBox("RecordBox", hbox, out recordFrame);
+            PNDUI.Layout(recordBox, 120, 30, 120, 30);
+            PNDUI.HBox(recordBox, 6f, TextAnchor.MiddleLeft).padding = new RectOffset(10, 12, 0, 0);
+            var trophyRt = PNDUI.Rect("Trophy", recordBox);
+            var trophy = trophyRt.gameObject.AddComponent<Image>();
+            trophy.sprite = PND.Spr("art/menu/icon_trophy");
+            trophy.preserveAspect = true;
+            trophy.raycastTarget = false;
+            PNDUI.Layout(trophy, 18, 18, 18, 18);
+            recordLabel = PNDUI.Label("RecordLabel", recordBox, record.ToString(), 18, new Color(1f, 0.85f, 0.3f), TextAlignmentOptions.MidlineRight, 4, Color.black);
+            PNDUI.Layout(recordLabel, flexW: 1);
 
             SetupTopButtons(hbox);
 
             // ---------- Aviso "MAIS RÁPIDO!" ----------
-            speedBanner = PNDUI.Label("SpeedBanner", root, "MAIS RÁPIDO!", 26, new Color(1f, 0.85f, 0.2f), TextAlignmentOptions.Center, 5, Color.black);
+            speedBanner = PNDUI.Label("SpeedBanner", root, "MAIS RÁPIDO!", 26, Verde, TextAlignmentOptions.Center, 5, Color.black);
             PNDUI.G(speedBanner.rectTransform, 0.5f, 0, 0.5f, 0, -200, 66, 200, 106);
             speedBanner.gameObject.SetActive(false);
 
             // ---------- Tela de pause ----------
             var pause = PNDUI.Full(PNDUI.Rect("PauseScreen", root));
             pauseScreen = pause.gameObject;
-            PNDUI.ColorRect("ColorRect", pause, new Color(0f, 0f, 0f, 0.784314f));
-            var pv = PNDUI.G(PNDUI.Rect("VBoxContainer", pause), 0.5f, 0.5f, 0.5f, 0.5f, -120, -110, 120, 110);
-            PNDUI.VBox(pv, 14f);
-            PNDUI.Label("PauseTitle", pv, "PAUSADO", 30, new Color(1f, 0.85f, 0.2f), TextAlignmentOptions.Center, 4, Color.black);
-            continueButton = PNDUI.Button("ContinueButton", pv, "CONTINUAR", 20);
-            restartButton = PNDUI.Button("RestartButton", pv, "REINICIAR", 20);
-            quitButton = PNDUI.Button("QuitButton", pv, "SAIR", 20);
+            PNDUI.ColorRect("ColorRect", pause, new Color(0f, 0.01f, 0.04f, 0.78f));
+            var pp = PNDUI.FramePanel("Panel", pause, true);
+            PNDUI.G(pp.rectTransform, 0.5f, 0.5f, 0.5f, 0.5f, -125, -112, 125, 112);
+            var pv = PNDUI.G(PNDUI.Rect("VBoxContainer", pp.transform), 0, 0, 1, 1, 34, 12, -34, -16);
+            PNDUI.VBox(pv, 11f);
+            PNDUI.Label("PauseTitle", pv, "PAUSADO", 28, Verde, TextAlignmentOptions.Center, 5, Color.black);
+            continueButton = PNDArtButton.CreateFramed("ContinueButton", pv, "CONTINUAR", 17);
+            restartButton = PNDArtButton.CreateFramed("RestartButton", pv, "REINICIAR", 17);
+            quitButton = PNDArtButton.CreateFramed("QuitButton", pv, "SAIR", 17);
+            // ↑ ↓ circulam pelos três botões
+            var pauseList = new Selectable[] { continueButton, restartButton, quitButton };
+            for (int i = 0; i < pauseList.Length; i++)
+            {
+                pauseList[i].navigation = new Navigation
+                {
+                    mode = Navigation.Mode.Explicit,
+                    selectOnUp = pauseList[(i + 2) % 3],
+                    selectOnDown = pauseList[(i + 1) % 3],
+                };
+            }
 
             // ---------- Tela de fim ----------
             var end = PNDUI.Full(PNDUI.Rect("EndScreen", root));
             endScreen = end.gameObject;
-            PNDUI.ColorRect("ColorRect", end, new Color(0f, 0f, 0f, 0.85f));
-            var ev = PNDUI.G(PNDUI.Rect("VBoxContainer", end), 0.5f, 0.5f, 0.5f, 0.5f, -220, -50, 220, 50);
-            PNDUI.VBox(ev, 8f, TextAnchor.MiddleCenter);
+            PNDUI.ColorRect("ColorRect", end, new Color(0f, 0.01f, 0.04f, 0.82f));
+            var ev = PNDUI.G(PNDUI.Rect("VBoxContainer", end), 0.5f, 0.5f, 0.5f, 0.5f, -230, -50, 230, 50);
+            // A moldura fica no próprio quadro, que cresce junto com o conteúdo
+            var evFrame = ev.gameObject.AddComponent<Image>();
+            PNDUI.Frame(evFrame, "art/menu/frame_panel_green", 26f);
+            evFrame.raycastTarget = false;
+            PNDUI.VBox(ev, 7f, TextAnchor.MiddleCenter).padding = new RectOffset(22, 22, 14, 16);
             // A altura acompanha o conteúdo e cresce para os dois lados
             var fitter = ev.gameObject.AddComponent<ContentSizeFitter>();
             fitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
 
             titleLabel = PNDUI.Label("TitleLabel", ev, "FIM DE JOGO!", 28, new Color(1f, 0.2f, 0.2f), TextAlignmentOptions.Center, 4, Color.black);
             reasonLabel = PNDUI.Label("ReasonLabel", ev, "", 14, Color.white, TextAlignmentOptions.Center);
-            finalScoreLabel = PNDUI.Label("FinalScoreLabel", ev, "SCORE: 0", 24, new Color(1f, 0.85f, 0.2f), TextAlignmentOptions.Center, 4, Color.black);
-            rankMsgLabel = PNDUI.Label("RankMsgLabel", ev, "", 14, new Color(0.3f, 1f, 0.3f), TextAlignmentOptions.Center);
+            finalScoreLabel = PNDUI.Label("FinalScoreLabel", ev, "SCORE: 0", 24, Verde, TextAlignmentOptions.Center, 4, Color.black);
+            rankMsgLabel = PNDUI.Label("RankMsgLabel", ev, "", 14, Verde, TextAlignmentOptions.Center);
 
             // Linha para digitar o nome (só aparece quando o score entra no TOP 5)
             var entry = PNDUI.Rect("NameEntry", ev);
@@ -118,9 +158,9 @@ namespace PanicoNoDisplay
             nameInput = PNDUI.TextInput("NameInput", entry, "digite aqui", 16, PNDScores.MaxNameLength);
             PNDUI.Layout(nameInput, 150, 28, 150, 28);
             nameInput.onValidateInput = (text, index, ch) => char.ToUpperInvariant(ch); // tudo em maiúsculas
-            saveButton = PNDUI.Button("SaveButton", entry, "SALVAR", 14);
+            saveButton = PNDArtButton.CreateFramed("SaveButton", entry, "SALVAR", 13);
             PNDUI.Layout(saveButton, 80, 28, 80, 28);
-            skipButton = PNDUI.Button("SkipButton", entry, "PULAR", 14);
+            skipButton = PNDArtButton.CreateFramed("SkipButton", entry, "PULAR", 13);
             PNDUI.Layout(skipButton, 70, 28, 70, 28);
 
             // Onde o quadro do TOP 5 aparece depois de salvar/pular
@@ -257,15 +297,18 @@ namespace PanicoNoDisplay
             int s = Mathf.FloorToInt(player.Distance / PixelsPerPoint);
             if (s <= score) return;
             score = s;
-            scoreLabel.text = "SCORE: " + score;
+            scoreLabel.text = score.ToString();
 
             if (!beatRecord && record > 0 && score > record)
             {
+                // Recorde batido: a caixa fica verde e passa a acompanhar o score
                 beatRecord = true;
-                recordLabel.text = "NOVO RECORDE!";
-                recordLabel.color = new Color(0.3f, 1f, 0.3f);
+                recordLabel.color = Verde;
+                if (recordFrame != null) PNDUI.Frame(recordFrame, "art/menu/frame_btn_hover", 50f);
                 if (recordSound != null) recordSound.Play();
             }
+            if (beatRecord)
+                recordLabel.text = score.ToString();
         }
 
         public void TogglePause()
@@ -280,11 +323,14 @@ namespace PanicoNoDisplay
             if (isPaused)
             {
                 pauseScreen.SetActive(true);
-                PNDUI.Select(continueButton);
+                // Botões começam azuis; a primeira seta seleciona o "Continuar"
+                PNDUI.Select(null);
+                game.DefaultSelectable = continueButton;
             }
             else
             {
                 pauseScreen.SetActive(false);
+                game.DefaultSelectable = null;
                 PNDUI.Select(null);
             }
         }
@@ -305,8 +351,8 @@ namespace PanicoNoDisplay
         {
             isPaused = false;
             SetTreePaused(false);
-            // No Godot fechava o jogo; integrado, volta para o jogo principal
-            game.ExitToMainGame();
+            // Volta para a tela de início do minijogo
+            game.ShowMenu();
         }
 
         // ==========================================
@@ -319,6 +365,7 @@ namespace PanicoNoDisplay
             gameEnded = true;
             isPaused = false;
             pauseScreen.SetActive(false);
+            game.DefaultSelectable = null;
             speedBanner.gameObject.SetActive(false);
             idleSince = Time.unscaledTime;
 
@@ -391,7 +438,7 @@ namespace PanicoNoDisplay
             // Ativa ANTES de montar: o TextMeshPro não aceita contorno em texto criado dentro de objeto desativado
             boardHolder.gameObject.SetActive(true);
             var board = PNDScores.BuildBoard(boardHolder, highlight);
-            PNDUI.Layout(board, 240, 138, 240, 138);
+            PNDUI.Layout(board, 260, 168, 260, 168);
 
             hintLabel.text = FinalHint;
             shownCountdown = -1;
@@ -434,14 +481,16 @@ namespace PanicoNoDisplay
         void SetupTopButtons(RectTransform hbox)
         {
             // Sem foco: assim o ESPAÇO (pulo) não "aperta" o botão sem querer
-            muteButton = PNDUI.Button("MuteButton", hbox, "", 18, focusable: false);
-            PNDUI.Layout(muteButton, 36, 32, 36, 32);
-            muteButton.tooltip = "Ligar/desligar o som (M)";
+            muteButton = PNDArtButton.CreateFramed("MuteButton", hbox, "", 16);
+            muteButton.SetIcon("art/menu/icon_sound_on", 18);
+            muteButton.NoKeyboard();
+            PNDUI.Layout(muteButton, 34, 28, 34, 28);
             muteButton.onClick.AddListener(ToggleMute);
 
-            pauseButton = PNDUI.Button("PauseButton", hbox, "⏸", 18, focusable: false);
-            PNDUI.Layout(pauseButton, 36, 32, 36, 32);
-            pauseButton.tooltip = "Pausar (P)";
+            pauseButton = PNDArtButton.CreateFramed("PauseButton", hbox, "", 16);
+            pauseButton.SetIcon("art/menu/icon_pause", 16);
+            pauseButton.NoKeyboard();
+            PNDUI.Layout(pauseButton, 34, 28, 34, 28);
             pauseButton.onClick.AddListener(TogglePause);
 
             UpdateMuteButton();
@@ -458,7 +507,7 @@ namespace PanicoNoDisplay
         void UpdateMuteButton()
         {
             if (muteButton == null) return;
-            muteButton.label.text = PND.Muted ? "🔇" : "🔊";
+            muteButton.SetIcon(PND.Muted ? "art/menu/icon_sound_off" : "art/menu/icon_sound_on", 18);
         }
     }
 }

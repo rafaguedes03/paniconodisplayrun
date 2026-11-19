@@ -15,17 +15,17 @@ namespace PanicoNoDisplay
     {
         public event Action closed;
 
-        const string OBJETIVO_TEXTO = "Você é um discente que, sem querer, derramou café no servidor do laboratório. O curto-circuito se espalhou e o lab virou um caos!\n\nAgora só resta correr: o laboratório não tem fim e a corrida fica cada vez mais rápida.\n\n➜ Desvie dos obstáculos pulando e deslizando.\n➜ Quanto mais longe você chegar, maior o seu SCORE.\n➜ Não há vidas: bateu em um obstáculo, a corrida acaba!\n➜ Ficou entre os 5 melhores? Digite seu nome e entre para o TOP 5.";
+        const string OBJETIVO_TEXTO = "Você é um discente que, sem querer, derramou café no servidor do laboratório. O curto-circuito se espalhou e o lab virou um caos!\n\nAgora só resta correr: o laboratório não tem fim e a corrida fica cada vez mais rápida.\n\n• Desvie dos obstáculos pulando e deslizando.\n• Quanto mais longe você chegar, maior o seu SCORE.\n• Não há vidas: bateu em um obstáculo, a corrida acaba!\n• Ficou entre os 5 melhores? Digite seu nome e entre para o TOP 5.";
 
-        const string PONTUACAO_TEXTO = "O SCORE é a distância que você correu: quanto mais longe, mais pontos.\n\n➜ A velocidade aumenta aos poucos durante a corrida, então os pontos também sobem mais rápido... e sobra menos tempo para reagir!\n➜ O RECORDE atual aparece no canto superior direito durante a corrida.\n➜ Ao perder, se o seu score entrar no TOP 5, digite seu nome (até 10 letras) e aperte ENTER para salvar.\n➜ O TOP 5 fica na tela inicial. Tente bater o primeiro lugar!";
+        const string PONTUACAO_TEXTO = "O SCORE é a distância que você correu: quanto mais longe, mais pontos.\n\n• A velocidade aumenta aos poucos durante a corrida, então os pontos também sobem mais rápido... e sobra menos tempo para reagir!\n• O RECORDE atual aparece no canto superior direito durante a corrida.\n• Ao perder, se o seu score entrar no TOP 5, digite seu nome (até 10 letras) e aperte ENTER para salvar.\n• O TOP 5 fica na tela inicial. Tente bater o primeiro lugar!";
 
         // [tecla, ação]
         static readonly string[,] CONTROLES =
         {
             { "ESPAÇO  ou  SETA ↑", "Pular" },
             { "SETA ↓ (segurar)", "Deslizar (passa por baixo dos fios)" },
-            { "P  ou  botão ⏸", "Pausar o jogo" },
-            { "M  ou  botão 🔊", "Ligar / desligar o som" },
+            { "P", "Pausar o jogo (ou o botão de pause na tela)" },
+            { "M", "Ligar / desligar o som (ou o botão de som na tela)" },
             { "ESPAÇO  ou  ENTER", "Pular a introdução / jogar de novo" },
             { "ENTER", "Salvar seu nome no TOP 5" },
         };
@@ -44,20 +44,17 @@ namespace PanicoNoDisplay
             { "art/obstacles/hanging_wire_icon", "Fio desencapado", "Solta faíscas na altura da cabeça. Não dá para pular: DESLIZE por baixo!" },
         };
 
-        static readonly Color COR_FUNDO = new Color(0.12549f, 0.164706f, 0.282353f, 1f); // mesma cor sólida do menu
-        static readonly Color COR_TITULO = new Color(1f, 0.8f, 0.2f);
-        static readonly Color COR_TEXTO = new Color(0.92f, 0.92f, 0.95f);
-        static readonly Color COR_DESTAQUE = new Color(1f, 0.85f, 0.35f);
-
-        static readonly PNDStyle TabSelected = new PNDStyle { bg = new Color(0.1f, 0.1f, 0.1f, 0.6f), radius = 3, radiusBottom = 0 };
-        static readonly PNDStyle TabUnselected = new PNDStyle { bg = new Color(0.1f, 0.1f, 0.1f, 0.3f), radius = 3, radiusBottom = 0 };
-        static readonly PNDStyle TabHover = new PNDStyle { bg = new Color(0.225f, 0.225f, 0.225f, 0.45f), radius = 3, radiusBottom = 0 };
+        // Cores do estilo da tela de início
+        static readonly Color COR_TITULO = new Color(0.37f, 0.99f, 0.57f);   // verde neon
+        static readonly Color COR_TEXTO = new Color(0.9f, 0.94f, 0.99f);
+        static readonly Color COR_DESTAQUE = new Color(0.55f, 1f, 0.7f);
+        static readonly Color COR_DICA = new Color(0.55f, 0.68f, 0.85f);
 
         PNDGame game;
         readonly List<GameObject> pages = new List<GameObject>();
-        readonly List<PNDButton> tabButtons = new List<PNDButton>();
+        readonly List<PNDArtButton> tabButtons = new List<PNDArtButton>();
         int currentTab;
-        PNDButton backButton;
+        PNDArtButton backButton;
 
         public static PNDHowToPlay Create(Transform parent, PNDGame game)
         {
@@ -70,25 +67,23 @@ namespace PanicoNoDisplay
 
         void Build(RectTransform root)
         {
-            // Bloqueia o mouse para o menu de trás
-            PNDUI.ColorRect("Background", root, COR_FUNDO);
+            // Fundo: a arte da tela de início escurecida (também bloqueia o mouse para o menu de trás)
+            PNDUI.MenuBackdrop(root);
 
-            var vbox = PNDUI.G(PNDUI.Rect("VBox", root), 0, 0, 1, 1, 14, 14, -14, -14);
-            PNDUI.VBox(vbox, 6f);
+            var frame = PNDUI.FramePanel("Frame", root, true);
+            PNDUI.G(frame.rectTransform, 0, 0, 1, 1, 12, 8, -12, -8);
 
-            PNDUI.Label("Title", vbox, "COMO JOGAR", 22, COR_TITULO, TextAlignmentOptions.Center, 5, Color.black);
+            // Posições fixas (de cima para baixo): título, abas, conteúdo, rodapé
+            var ft = frame.transform;
+            var title = PNDUI.Label("Title", ft, "COMO JOGAR", 22, COR_TITULO, TextAlignmentOptions.Center, 5, Color.black);
+            PNDUI.G(title.rectTransform, 0, 0, 1, 0, 16, 14, -16, 46);
 
-            // ----- TabContainer -----
-            var tabs = PNDUI.Rect("TabContainer", vbox);
-            PNDUI.VBox(tabs, 0f);
-            PNDUI.Layout(tabs, flexW: 1, flexH: 1);
+            // ----- Abas (botões com a moldura do menu) -----
+            var header = PNDUI.G(PNDUI.Rect("TabBar", ft), 0, 0, 1, 0, 16, 56, -16, 82);
+            PNDUI.HBox(header, 12f, TextAnchor.MiddleCenter);
 
-            var header = PNDUI.Rect("TabBar", tabs);
-            PNDUI.HBox(header, 0f, TextAnchor.LowerLeft);
-            header.GetComponent<HorizontalLayoutGroup>().childForceExpandWidth = false;
-
-            var panelImg = PNDUI.StyledBox("Panel", tabs, PNDUI.GodotPanel, false);
-            PNDUI.Layout(panelImg, flexH: 1);
+            var panelImg = PNDUI.FramePanel("Panel", ft, false);
+            PNDUI.G(panelImg.rectTransform, 0, 0, 1, 1, 18, 92, -18, -44);
 
             AddTab(header, panelImg.transform, "OBJETIVO", p => BuildTexto(p, OBJETIVO_TEXTO));
             AddTab(header, panelImg.transform, "CONTROLES", BuildControles);
@@ -96,23 +91,24 @@ namespace PanicoNoDisplay
             AddTab(header, panelImg.transform, "PONTUAÇÃO", p => BuildTexto(p, PONTUACAO_TEXTO));
 
             // ----- Rodapé -----
-            var bottom = PNDUI.Rect("Bottom", vbox);
-            PNDUI.HBox(bottom, 14f, TextAnchor.MiddleCenter);
+            var bottom = PNDUI.G(PNDUI.Rect("Bottom", ft), 0, 1, 1, 1, 16, -38, -16, -10);
+            PNDUI.HBox(bottom, 16f, TextAnchor.MiddleCenter);
 
-            PNDUI.Label("Hint", bottom, "◀ ▶ trocar aba", 11, new Color(0.7f, 0.7f, 0.75f));
+            PNDUI.Label("Hint", bottom, "← → trocar aba", 11, COR_DICA);
 
-            backButton = PNDUI.Button("BackButton", bottom, "VOLTAR", 16);
-            PNDUI.Layout(backButton, 120, 30, 120, 30);
+            backButton = PNDArtButton.CreateFramed("BackButton", bottom, "VOLTAR", 14);
+            PNDUI.Layout(backButton, 110, 26, 110, 26);
             backButton.onClick.AddListener(Close);
 
-            PNDUI.Label("Hint2", bottom, "ESC voltar", 11, new Color(0.7f, 0.7f, 0.75f));
+            PNDUI.Label("Hint2", bottom, "ESC voltar", 11, COR_DICA);
 
             SetTab(0);
         }
 
         void Start()
         {
-            PNDUI.Select(backButton);
+            // Nada selecionado: o VOLTAR fica azul até o mouse passar por cima
+            PNDUI.Select(null);
             game.ConsumeArrows = true;
         }
 
@@ -125,7 +121,7 @@ namespace PanicoNoDisplay
         {
             var kb = Keyboard.current;
             if (kb == null) return;
-            if (kb.escapeKey.wasPressedThisFrame)
+            if (kb.escapeKey.wasPressedThisFrame || kb.backspaceKey.wasPressedThisFrame)
             {
                 Close();
             }
@@ -158,9 +154,10 @@ namespace PanicoNoDisplay
             build(page);
             pages.Add(page.gameObject);
 
-            var b = PNDUI.Button("Tab_" + title, header, title, 13, TabUnselected, TabHover, TabSelected, focusable: false);
+            var b = PNDArtButton.CreateFramed("Tab_" + title, header, title, 12);
+            b.NoKeyboard(); // as abas trocam com ← →
             var le = b.GetComponent<LayoutElement>();
-            le.preferredWidth = b.label.GetPreferredValues(title).x + 20f;
+            le.preferredWidth = b.label.GetPreferredValues(title).x + 30f;
             le.minHeight = le.preferredHeight = 24f;
             b.onClick.AddListener(() => SetTab(index));
             tabButtons.Add(b);
@@ -172,9 +169,7 @@ namespace PanicoNoDisplay
             for (int k = 0; k < pages.Count; k++)
             {
                 pages[k].SetActive(k == i);
-                var b = tabButtons[k];
-                b.styleNormal = k == i ? TabSelected : TabUnselected;
-                b.fontNormal = k == i ? new Color(0.95f, 0.95f, 0.95f) : new Color(0.7f, 0.7f, 0.7f);
+                tabButtons[k].locked = k == i; // a aba aberta fica verde
             }
         }
 
@@ -207,7 +202,7 @@ namespace PanicoNoDisplay
                 le.minWidth = le.preferredWidth = maxW;
             }
 
-            var dica = PNDUI.Label("Dica", page, "💡 " + CONTROLES_DICA, 12, COR_DESTAQUE, TextAlignmentOptions.TopLeft, 0, null, true);
+            var dica = PNDUI.Label("Dica", page, "DICA: " + CONTROLES_DICA, 12, COR_DESTAQUE, TextAlignmentOptions.TopLeft, 0, null, true);
             PNDUI.Layout(dica, flexW: 1);
         }
 
@@ -234,7 +229,7 @@ namespace PanicoNoDisplay
 
             if (!string.IsNullOrEmpty(rodape))
             {
-                var r = PNDUI.Label("Rodape", page, "⚠ " + rodape, 12, new Color(1f, 0.45f, 0.45f), TextAlignmentOptions.TopLeft, 0, null, true);
+                var r = PNDUI.Label("Rodape", page, "ATENÇÃO: " + rodape, 12, new Color(1f, 0.45f, 0.45f), TextAlignmentOptions.TopLeft, 0, null, true);
                 PNDUI.Layout(r, flexW: 1);
             }
         }
@@ -264,9 +259,9 @@ namespace PanicoNoDisplay
 
         static readonly PNDStyle ChipStyle = new PNDStyle
         {
-            bg = new Color(0.9f, 0.9f, 0.92f),
+            bg = new Color(0.03f, 0.1f, 0.19f),
             radius = 4,
-            border = new Color(0.55f, 0.55f, 0.6f),
+            border = new Color(0.33f, 0.55f, 0.8f),
             borderL = 1, borderT = 1, borderR = 1, borderB = 3,
         };
 
@@ -274,7 +269,7 @@ namespace PanicoNoDisplay
         {
             var box = PNDUI.StyledBox("KeyChip", parent, ChipStyle, false);
             var rt = box.rectTransform;
-            var label = PNDUI.Label("Label", rt, text, 12, new Color(0.1f, 0.1f, 0.12f), TextAlignmentOptions.Center);
+            var label = PNDUI.Label("Label", rt, text, 12, Color.white, TextAlignmentOptions.Center);
             // content_margin: 8 nas laterais, 2 em cima, 2 + borda de 3 embaixo
             PNDUI.G(label.rectTransform, 0, 0, 1, 1, 8, 2, -8, -4);
             Vector2 pref = label.GetPreferredValues(text);
